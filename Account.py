@@ -60,6 +60,18 @@ class Account:
         signature = ''
 
         # Implement digital signature of the hash of the message
+        private_key = serialization.load_pem_private_key(
+            self._private_pem, password=None
+        )
+        transaction_hash = hashlib.sha256(json.dumps(transaction_message).encode()).hexdigest()
+        signature = private_key.sign(
+            transaction_hash,
+            padding.PSS(
+                mgf=padding.MGF1(hashes.SHA256()),
+                salt_length=padding.PSS.MAX_LENGTH
+            ),
+            hashes.SHA256()
+        )
 
         self._nonce = nonce
         return {'message': transaction_message, 'signature': signature}
