@@ -64,7 +64,7 @@ class Account:
             self._private_pem, password=None
         )
         transaction_hash = hashlib.sha256(json.dumps(transaction_message).encode()).hexdigest()
-        signature = private_key.sign(
+        signature_bytes = private_key.sign(
             transaction_hash,
             padding.PSS(
                 mgf=padding.MGF1(hashes.SHA256()),
@@ -72,6 +72,7 @@ class Account:
             ),
             hashes.SHA256()
         )
+        signature = base64.encode(signature_bytes)
 
         self._nonce = nonce
         return {'message': transaction_message, 'signature': signature}
