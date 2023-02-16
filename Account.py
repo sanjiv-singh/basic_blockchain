@@ -56,6 +56,7 @@ class Account:
     def create_transaction(self, receiver_id, value, tx_metadata=''):
         nonce = self._nonce + 1
         transaction_message = {'sender': self._id, 'receiver': receiver_id, 'value': value, 'tx_metadata': tx_metadata, 'nonce': nonce}
+        transaction_message_hash = hashlib.sha256(json.dumps(transaction_message, sort_keys=True).encode()).hexdigest()
 
         signature = ''
 
@@ -63,9 +64,8 @@ class Account:
         private_key = serialization.load_pem_private_key(
             self._private_pem, password=None
         )
-        transaction_hash = hashlib.sha256(json.dumps(transaction_message).encode()).hexdigest()
         signature_bytes = private_key.sign(
-            transaction_hash.encode(),
+            transaction_message_hash.encode(),
             padding.PSS(
                 mgf=padding.MGF1(hashes.SHA256()),
                 salt_length=padding.PSS.MAX_LENGTH
