@@ -73,6 +73,26 @@ class Blockchain:
         # Appropriately transfer value from the sender to the receiver
         # For all transactions, first check that the sender has enough balance. 
         # Return False otherwise
+        transactions = [t["message"] for t in transactions]
+        transaction_dict = {}
+        for transaction in transactions:
+            sender = transaction.get("sender")
+            receiver = transaction.get("receiver")
+            value = transaction.get("value")
+            if sender not in self._accounts:
+                return False
+            if receiver not in self._accounts:
+                return False
+            transaction_dict[sender] = transaction_dict.get(sender, 0) - value
+            transaction_dict[receiver] = transaction_dict.get(receiver, 0) + value
+        for account_balance in self.get_account_balances():
+            if account_balance["id"] not in transaction_dict:
+                continue
+            if account_balance["balance"] < -1.0*transaction_dict[account_balance["id"]]:
+                return False
+        for account_id, value in transaction_dict.items():
+            account = self._accounts.get(account_id)
+            account.increase_balance(value)
         return True
 
     # Creates a new block and appends to the chain
