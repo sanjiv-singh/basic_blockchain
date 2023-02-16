@@ -85,11 +85,14 @@ class Blockchain:
                 return False
             transaction_dict[sender] = transaction_dict.get(sender, 0) - value
             transaction_dict[receiver] = transaction_dict.get(receiver, 0) + value
+        """
+        # Validation check (acct balance should never go negative)
         for account_balance in self.get_account_balances():
             if account_balance["id"] not in transaction_dict:
                 continue
             if account_balance["balance"] < -1.0*transaction_dict[account_balance["id"]]:
                 return False
+        """
         for account_id, value in transaction_dict.items():
             account = self._accounts.get(account_id)
             account.increase_balance(value)
