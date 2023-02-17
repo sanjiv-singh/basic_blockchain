@@ -142,8 +142,6 @@ class Blockchain:
             for transaction in sorted_transactions:
                 receiver = transaction.get("receiver")
                 sender = transaction.get("sender")
-                print(f'{receiver} has {account_balance[receiver]} as balance')
-                print(f'{sender} has {account_balance[sender]} as balance')
                 if account_balance[sender] < 0 or account_balance[receiver] < 0:
                     return False
                 account_balance[receiver] -= transaction.get("value")
