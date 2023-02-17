@@ -133,6 +133,21 @@ class Blockchain:
     def __validate_complete_account_balances(self):
         # Run through the whole blockchain and ensure that balances never become negative from any transaction
         # Return False otherwise
+        account_balance = {}
+        for balance in self.get_account_balances():
+            account_balance[balance.get("id")] = balance.get("balance")
+        for block in sorted(self._chain, key=lambda x: x._index, reverse=True):
+            transaction_messages = [t["message"] for t in block._transactions]
+            sorted_transactions = sorted(transaction_messages, key=lambda x: x['nonce'], reverse=True)
+            for transaction in sorted_transactions:
+                receiver = transaction.get("receiver")
+                sender = transaction.get("sender")
+                print(f'{receiver} has {account_balance[receiver]} as balance')
+                print(f'{sender} has {account_balance[sender]} as balance')
+                if account_balance[sender] < 0 or account_balance[receiver] < 0:
+                    return False
+                account_balance[receiver] -= transaction.get("value")
+                account_balance[sender] += transaction.get("value")
         return True
 
     # Blockchain validation function
@@ -141,6 +156,8 @@ class Blockchain:
         # Call __validate_chain_hash_integrity and implement that method. Return False if check fails
         # Call __validate_block_hash_target and implement that method. Return False if check fails
         # Call __validate_complete_account_balances and implement that method. Return False if check fails
+        if not self.__validate_complete_account_balances():
+            return False
 
         return True
 
