@@ -136,6 +136,16 @@ class Blockchain:
     def __validate_block_hash_target(self):
         # Run through the whole blockchain and ensure that block hash meets hash target criteria, and is the actual hash of the block
         # Return False otherwise
+        for block in self._chain:
+            if block.hash_block() != block.block_hash:
+                print('Block hash is invalid.')
+                return False
+            if block._index == 0:
+                continue
+            if int(block.block_hash, 16) >= int(block.hash_target, 16):
+                print('Block hash is not less than hash target.')
+                return False
+        print('Block hashes are less than hash target.')
         return True
 
     def __validate_complete_account_balances(self):
@@ -161,12 +171,19 @@ class Blockchain:
     def validate_blockchain(self):
         # Call __validate_chain_hash_integrity and implement that method. Return False if check fails
         if not self.__validate_chain_hash_integrity():
+            print('Chain hash integrity is invalid.')
             return False
+        print('Chain hash integrity is valid.')
         # Call __validate_block_hash_target and implement that method. Return False if check fails
+        if not self.__validate_block_hash_target():
+            print('Block hash target is invalid.')
+            return False
+        print('Block hash target is valid.')
         # Call __validate_complete_account_balances and implement that method. Return False if check fails
         if not self.__validate_complete_account_balances():
+            print('Account balances are invalid.')
             return False
-
+        print('Account balances are valid.')
         return True
 
     def add_account(self, account):
