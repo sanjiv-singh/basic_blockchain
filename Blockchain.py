@@ -123,6 +123,14 @@ class Blockchain:
     def __validate_chain_hash_integrity(self):
         # Run through the whole blockchain and ensure that previous hash is actually the hash of the previous block
         # Return False otherwise
+        nblocks = len(self._chain)
+        if nblocks < 2:
+            return True
+        for index in range(nblocks-1):
+            previous_block = self._chain[index]
+            current_block = self._chain[index+1]
+            if previous_block.hash_block() != current_block.previous_block_hash:
+                return False
         return True
 
     def __validate_block_hash_target(self):
@@ -152,6 +160,8 @@ class Blockchain:
     # Runs through the whole blockchain and applies appropriate validations
     def validate_blockchain(self):
         # Call __validate_chain_hash_integrity and implement that method. Return False if check fails
+        if not self.__validate_chain_hash_integrity():
+            return False
         # Call __validate_block_hash_target and implement that method. Return False if check fails
         # Call __validate_complete_account_balances and implement that method. Return False if check fails
         if not self.__validate_complete_account_balances():
