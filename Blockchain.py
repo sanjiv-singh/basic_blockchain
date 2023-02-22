@@ -205,9 +205,18 @@ class Blockchain:
     def __validate_chain_hash_integrity(self):
         # Run through the whole blockchain and ensure that previous hash is actually the hash of the previous block
         # Return False otherwise
+
+        # Number of blocks in the chain
         nblocks = len(self._chain)
+
+        # return True in case there is either no block
+        # or only the genesis block
         if nblocks < 2:
             return True
+        
+        # Loop through the chain and check if hash of previous block
+        # is equal to the value stored in previous_block_hash attriibute
+        # of current block
         for index in range(nblocks-1):
             previous_block = self._chain[index]
             current_block = self._chain[index+1]
@@ -219,11 +228,18 @@ class Blockchain:
         # Run through the whole blockchain and ensure that block hash meets hash target criteria, and is the actual hash of the block
         # Return False otherwise
         for block in self._chain:
+
+            # Ignore genesis block
+            if block._index == 0:
+                continue
+
+            # Check that the value stored in block_hash attribute
+            # is actually the hash of block including the nonce
             if block.hash_block() != block.block_hash:
                 print('Block hash is invalid.')
                 return False
-            if block._index == 0:
-                continue
+            
+            # Check that the block has is less than the target hash
             if int(block.block_hash, 16) >= int(block.hash_target, 16):
                 print('Block hash is not less than hash target.')
                 return False
