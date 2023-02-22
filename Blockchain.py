@@ -73,40 +73,123 @@ class Blockchain:
         # Appropriately transfer value from the sender to the receiver
         # For all transactions, first check that the sender has enough balance. 
         # Return False otherwise
+
+        # Get all pending tansaction messages into a list
         transactions = [t["message"] for t in transactions]
+        # Create a new dict to hold all transactions. Here the key will be the account_id
+        # and the value will be the net transfer value based on all transactions processed so far.
+        # Transactions are being recorded in separate dict so that they may be committed all at
+        # once after checking that the balance never falls below zero.
         transaction_dict = {}
+
+        # Now evaluate the transactions one by one in a loop
         for transaction in transactions:
             sender = transaction.get("sender")
             receiver = transaction.get("receiver")
             value = transaction.get("value")
+
+            # If a sender account is not registered with blockchain return False
             if sender not in self._accounts:
                 return False
+            # If a receiver account is not registered with blockchain return False
             if receiver not in self._accounts:
                 return False
+            # Get account balance of sender and check if it has balance
+            sender_account = self._accounts.get(sender)
+            if sender_account.balance < value:
+                return False
+            
+            # Also, check whether the balance is diminishing below
+            # the transferred value at any subsequent transaction 
             transaction_dict[sender] = transaction_dict.get(sender, 0) - value
+            if sender_account.balance < transaction_dict[sender]:
+                return False
             transaction_dict[receiver] = transaction_dict.get(receiver, 0) + value
         # Validation check (acct balance should never go negative)
-        for account_balance in self.get_account_balances():
-            if account_balance["id"] not in transaction_dict:
-                continue
-            if account_balance["balance"] < -1.0*transaction_dict[account_balance["id"]]:
-                return False
+        #for account_balance in self.get_account_balances():
+        #    if account_balance["id"] not in transaction_dict:
+        #        continue
+        #    if account_balance["balance"] < -1.0*transaction_dict[account_balance["id"]]:
+        #        return False
+
+        # Finally commit the transactions all at once and return True
         for account_id, value in transaction_dict.items():
             account = self._accounts.get(account_id)
             account.increase_balance(value)
         return True
 
+    def __process_valid_transactions(self, transactions):
+        # Appropriately transfer value from the sender to the receiver
+        # For all transactions, first check that the sender has enough balance. 
+        # If balance falls below transferred value for any transaction, 
+        # do not add it to valid_transactions list
+
+        # Get all pending tansaction messages into a list
+        #transactions = [t["message"] for t in transactions]
+
+        # Create a new empty list to hold all valid transactions
+        valid_transactions = []
+
+        # Create a new dict to hold all transactions. Here the key will be the account_id
+        # and the value will be the net transfer value based on all transactions processed so far.
+        # Transactions are being recorded in separate dict so that they may be committed all at
+        # once after checking that the balance never falls below zero.
+        transaction_dict = {}
+
+        # Now evaluate the transactions one by one in a loop
+        for transaction in transactions:
+            sender = transaction["message"].get("sender")
+            receiver = transaction["message"].get("receiver")
+            value = transaction["message"].get("value")
+
+            # If a sender account is not registered with blockchain reject transaction and continue
+            if sender not in self._accounts:
+                continue
+            # If a receiver account is not registered with blockchain reject transaction and continue
+            if receiver not in self._accounts:
+                continue
+            # Get account balance of sender and check if it has balance
+            # else reject the transaction and continue
+            sender_account = self._accounts.get(sender)
+            if sender_account.balance < value:
+                print(f"Insufficient balance, rejecting tx: {transaction}")
+                continue
+            
+            # Also, check whether the balance is diminishing below
+            # the transferred value at any subsequent transaction 
+            # If so, reject the transaction and continue
+            transaction_dict[sender] = transaction_dict.get(sender, 0) - value
+            if sender_account.balance < transaction_dict[sender]:
+                print(f"Insufficient balance, rejecting tx: {transaction}")
+                continue
+            transaction_dict[receiver] = transaction_dict.get(receiver, 0) + value
+
+            # If all the above tests pass add the transaction to list of valid transactions
+            valid_transactions.append(transaction)
+        # Validation check (acct balance should never go negative)
+        #for account_balance in self.get_account_balances():
+        #    if account_balance["id"] not in transaction_dict:
+        #        continue
+        #    if account_balance["balance"] < -1.0*transaction_dict[account_balance["id"]]:
+        #        return False
+
+        # Finally commit the transactions all at once and
+        # return the list of valid transactions
+        for account_id, value in transaction_dict.items():
+            account = self._accounts.get(account_id)
+            account.increase_balance(value)
+        return valid_transactions
+
     # Creates a new block and appends to the chain
     # Also clears the pending transactions as they are part of the new block now
     def create_new_block(self):
-        new_block = Block(len(self._chain), self._pending_transactions, self._chain[-1].block_hash, self._hash_target)
         if self.__process_transactions(self._pending_transactions):
-            self._chain.append(new_block)
-            self._pending_transactions = []
-            #return new_block
-            return True
+            new_block = Block(len(self._chain), self._pending_transactions, self._chain[-1].block_hash, self._hash_target)
         else:
-            return False
+            valid_transactions = self.__process_valid_transactions(self._pending_transactions)
+            new_block = Block(len(self._chain), valid_transactions, self._chain[-1].block_hash, self._hash_target)
+        self._chain.append(new_block)
+        self._pending_transactions = []
 
     # Simple transaction with just one sender, one receiver, and one value
     # Created by the account and sent to the blockchain instance
@@ -187,7 +270,7 @@ class Blockchain:
 
     def add_account(self, account):
         self._accounts[account.id] = account
-
+    
     def get_account_balances(self):
         return [{'id': account.id, 'balance': account.balance} for account in self._accounts.values()]
 
