@@ -249,6 +249,10 @@ class Blockchain:
     def __validate_complete_account_balances(self):
         # Run through the whole blockchain and ensure that balances never become negative from any transaction
         # Return False otherwise
+
+        # The below method was implemented by taking the final account balance as the starting point.
+        # The loop goes backwards with reverse order of transactions (reverse of block index and reverse of nonce)
+        """
         account_balance = {}
         for balance in self.get_account_balances():
             account_balance[balance.get("id")] = balance.get("balance")
@@ -262,6 +266,27 @@ class Blockchain:
                     return False
                 account_balance[receiver] -= transaction.get("value")
                 account_balance[sender] += transaction.get("value")
+        return True
+        """
+
+        # The below method is as per solution suggested in project explanation.
+        # The initial balance is stored in a new attribute (_initial_balance).
+        # The blocks and transactions are looped and checked whether account balance
+        # fell below zero at any stage.
+        account_balance = {}
+        for id, account in self._accounts.items():
+            account_balance[id] = account.initial_balance
+        for block in sorted(self._chain, key=lambda x: x._index):
+            transaction_messages = [t["message"] for t in block._transactions]
+            sorted_transactions = sorted(transaction_messages, key=lambda x: x['nonce'])
+            for transaction in sorted_transactions:
+                receiver = transaction.get("receiver")
+                sender = transaction.get("sender")
+                value = transaction.get("value")
+                account_balance[receiver] = account_balance.get(receiver, 0) + value
+                account_balance[sender] = account_balance.get(sender, 0) - value
+                if account_balance[sender] < 0:
+                    return False
         return True
 
     # Blockchain validation function
